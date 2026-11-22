@@ -1,0 +1,7 @@
+# Tested with: Python 3.12, torch 2.11.0+cu128, triton-windows 3.5.1 (Linux: triton 3.5.x)
+torch>=2.6
+triton>=3.3          # on Windows: pip install triton-windows
+numpy
+pandas
+matplotlib
+pytest

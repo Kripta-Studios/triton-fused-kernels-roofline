@@ -1,0 +1,18 @@
+[project]
+name = "fusedkernels"
+version = "0.1.0"
+description = "Fused RMSNorm and FlashAttention-2-style causal attention in Triton, with a roofline analysis"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = ["torch>=2.6", "triton>=3.3"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
