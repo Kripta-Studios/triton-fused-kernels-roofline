@@ -216,7 +216,7 @@ flowchart LR
 **Hardware and software:** NVIDIA GeForce RTX 5070 Ti Laptop GPU (sm_120, 46 SMs,
 11.9 GB usable), driver 591.86, Windows 11 (26200), Python 3.12.13, torch
 2.11.0+cu128, triton-windows 3.5.1. Timing uses `triton.testing.do_bench`, median
-over reps. The L2 (40 MB per the spec sheet) is flushed between reps, so the numbers are
+over reps. The 36 MB L2 (as the driver reports it; spec sheets say 40 MB) is flushed between reps, so the numbers are
 DRAM-cold. All benchmarks are bf16. Exact environment: [results/env.json](results/env.json).
 
 > **Measurement caveat.** The GPU was shared with other jobs and was thermally
@@ -260,8 +260,9 @@ What to read from this:
 * The eager composite is 9-12x slower at large M (fp32 intermediates and 7
   launches). At M = 1 every implementation is bound by launch latency (~8 us).
   Decode-time norms are a CPU and launch problem, which is why engines use CUDA
-  Graphs. The very high eager numbers with the residual at small M (~0.5 ms) come
-  from CPU-side launch overhead on a busy machine. They are not a GPU effect.
+  Graphs. The very high eager numbers with the residual at small M (~0.5 ms) are
+  not GPU work: the data is a few KB, so the work takes microseconds. We did not
+  isolate the cause. CPU-side overhead on a busy machine is the likely one.
   Full grid (hidden 1024/4096/8192): [results/rmsnorm.csv](results/rmsnorm.csv).
 
 ### Causal attention (B = 1, H = 16, bf16, time in ms)
@@ -303,7 +304,12 @@ What to read from this:
   7.7 TFLOP/s there). That is FA2's motivation for parallelizing over the
   sequence dimension, and it is also why batch size matters. The N <= 1024 rows
   are sub-0.4 ms runs and were the noisiest on the shared GPU (e.g. cuDNN at
-  N = 512, D = 64 timed *slower* than at N = 1024), so read them with care.
+  N = 512, D = 64 timed *slower* than at N = 1024), so read them with care. The
+  Triton N = 512, D = 64 row in the CSV (0.030 ms, 17.7 TFLOP/s) is implausible:
+  it has 4x fewer FLOPs than N = 1024 but timed 5.7x faster, at a higher
+  TFLOP/s on a less-filled GPU. Treat it as a timing artifact (it is the
+  "N=512" label on the roofline plot), not a result. At N = 1024, D = 64 the
+  kernel is 0.6x cuDNN.
 
 ### Nsight Compute
 

@@ -48,7 +48,7 @@ def main() -> None:
 
 def run() -> dict[str, object]:
     out: dict[str, object] = {"copy": [], "gemm": []}
-    # Sizes span "fits in the 40 MB L2" to "far bigger than L2". Max 512 MB per
+    # Sizes span "fits in the 36 MB L2" to "far bigger than L2". Max 512 MB per
     # buffer => ~1 GB VRAM, well inside the 6 GB budget.
     for mb in (8, 32, 128, 512):
         n = mb * 2**20 // 2

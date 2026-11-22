@@ -93,7 +93,7 @@ while writing this; numbers are quoted as the sources report them.
 ## 4. What this means on the GPU used here
 
 - **GPU:** GeForce RTX 5070 Ti **Laptop** (GB205, sm_120): 46 SMs, 5888 CUDA cores,
-  184 tensor cores, 40 MB L2, 12 GB GDDR7 on a 192-bit bus at 28 Gbps = **672 GB/s**,
+  184 tensor cores, 36 MB L2 (driver-reported `L2_cache_size`; the spec sheet below says 40 MB), 12 GB GDDR7 on a 192-bit bus at 28 Gbps = **672 GB/s**,
   ~1.82 GHz boost (80 W variant), FP16 tensor **~55 TFLOP/s dense with FP32
   accumulate** (110 with FP16 accumulate), 21.4 TFLOP/s FP32
   ([hmc-tech spec sheet](https://hmc-tech.com/gpus/nvidia-geforce-rtx-5070-ti-laptop-80w),

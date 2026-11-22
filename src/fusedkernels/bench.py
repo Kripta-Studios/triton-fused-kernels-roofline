@@ -13,7 +13,7 @@ from triton.testing import do_bench
 
 def time_ms(fn: Callable[[], object], warmup: int = 25, rep: int = 100) -> float:
     """Median runtime in ms. `do_bench` zeroes a 256 MB buffer between reps, so
-    the 40 MB L2 is flushed and we measure DRAM-cold performance (otherwise a
+    the 36 MB L2 is flushed and we measure DRAM-cold performance (otherwise a
     small RMSNorm would be timed against L2, not DRAM)."""
     return float(do_bench(fn, warmup=warmup, rep=rep, return_mode="median"))
 
