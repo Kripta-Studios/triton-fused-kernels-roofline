@@ -1,5 +1,8 @@
-command: C:\Program Files\NVIDIA Corporation\Nsight Compute 2024.1.1\ncu.BAT --profile-from-start off --target-processes all --metrics gpu__time_duration.sum,dram__bytes.sum,dram__throughput.avg.pct_of_peak_sustained_elapsed,sm__throughput.avg.pct_of_peak_sustained_elapsed,sm__warps_active.avg.pct_of_peak_sustained_active --csv ~\Desktop\KriptaStudios\Infraestructure_Projects\.venv\Scripts\python.exe ~\Desktop\KriptaStudios\Infraestructure_Projects\triton-fused-kernels-roofline\scripts\ncu_target.py
+command: C:\Program Files\NVIDIA Corporation\Nsight Compute 2024.1.1\ncu.BAT --profile-from-start off --target-processes all --metrics gpu__time_duration.sum,dram__bytes.sum,dram__throughput.avg.pct_of_peak_sustained_elapsed,sm__throughput.avg.pct_of_peak_sustained_elapsed,sm__warps_active.avg.pct_of_peak_sustained_active --csv ~\Desktop\KRIPTA~1\INFRAE~1\VENV~1\Scripts\python.exe ~\Desktop\KRIPTA~1\INFRAE~1\TRITON~1\scripts\NCU_TA~1.PY
 return code: 1
 
-==ERROR== Failed to parse options: No hay ninguna asignación en la página de códigos de múltiples bytes de destino para el carácter Unicode.
+==PROF== Connected to process 41596 (~\AppData\Roaming\uv\python\cpython-3.12.13-windows-x86_64-none\python.exe)
+==ERROR== ERR_NVGPUCTRPERM - The user does not have permission to access NVIDIA GPU Performance Counters on the target device 0. For instructions on enabling permissions and to get more information see https://developer.nvidia.com/ERR_NVGPUCTRPERM
+==PROF== Disconnected from process 41596
+==WARNING== No kernels were profiled.
 

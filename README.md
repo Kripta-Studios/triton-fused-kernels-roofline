@@ -276,7 +276,7 @@ What to read from this:
 
 (Full grid with N = 512 ... 16384: [results/attention.csv](results/attention.csv).
 Eager and compile were skipped above N = 4096 because the materialized scores
-would need several GB of VRAM.)
+would need several GB of VRAM. The FLOP/byte axis on the roofline uses compulsory traffic.)
 
 ![attention](results/attention_tflops.png)
 
@@ -366,7 +366,36 @@ performance counters to all users" enabled in the NVIDIA Control Panel. Without
 that, ncu returns `ERR_NVGPUCTRPERM`. Blackwell (sm_120) needs **Nsight Compute
 2025.1 or newer**.
 
-NCU_RESULT_PLACEHOLDER
+**What happened on this machine (honest account):**
+
+1. Nsight Compute 2024.1.1 (the only version installed) first failed before it
+   ever touched the GPU with `Failed to parse options: No mapping for the
+   Unicode character exists in the target multi-byte code page`. Cause: the
+   Windows user name contains a non-ASCII character, and ncu 2024.1 cannot handle
+   that in **any** environment variable (USERPROFILE, APPDATA, PATH...), not just
+   in its arguments. `run_ncu.py` now rewrites non-ASCII environment values and
+   arguments to their 8.3 short paths, which are pure ASCII. That fixed it.
+2. The second run attached to the process and then stopped with
+   **`ERR_NVGPUCTRPERM`**: performance counters are restricted to administrators on
+   this machine, and changing that needs an admin and NVIDIA Control Panel access,
+   which this project did not have. The exact log is in
+   [results/ncu_attempt.txt](results/ncu_attempt.txt).
+
+So **no ncu metrics are reported here**. Even with counters enabled, 2024.1.1
+predates official sm_120 support, so it might still refuse the GPU. What we
+report instead is the "analytic + measured" roofline: compulsory bytes and FLOPs
+counted from the algorithm, divided by measured wall time. As a stand-in for
+`dram__throughput`, the RMSNorm kernel's effective bandwidth (82-91% of the
+measured copy peak) is a *lower bound* on its real DRAM throughput. For
+attention, achieved TFLOP/s against the cuBLAS roof (~80% at D = 64) plays the
+role of `sm__throughput`. Occupancy was **not measured**. To get real numbers,
+install Nsight Compute >= 2025.1, enable counter access, and run
+`python scripts/run_ncu.py --ncu <path-to-ncu>`. The script writes
+`results/ncu_metrics.csv`.
+
+Expected ncu signature, for anyone who reruns this: RMSNorm should show high
+`dram__throughput` (> 80%) with low `sm__throughput`. Attention at N = 4096 should
+show the opposite: high SM/tensor-pipe throughput and low DRAM throughput.
 
 ---
 

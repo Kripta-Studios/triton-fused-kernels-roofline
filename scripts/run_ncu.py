@@ -10,6 +10,8 @@ ERR_NVGPUCTRPERM when GPU performance counters are restricted to admins).
 from __future__ import annotations
 
 import argparse
+import os
+import re
 import shutil
 import subprocess
 import sys
@@ -28,21 +30,52 @@ METRICS = [
 
 def redact(text: str) -> str:
     """Keep local user paths out of committed result files."""
-    home = str(Path.home())
-    return text.replace(home, "~").replace(home.replace("\\", "/"), "~")
+    # Regex rather than str.replace: ncu prints the user directory mis-decoded
+    # (mojibake), so the exact home path never appears verbatim.
+    return re.sub(r"[A-Za-z]:[\\/]Users[\\/][^\\/]+", "~", text)
+
+
+def short_path(path: str) -> str:
+    """8.3 short form of a Windows path, which is pure ASCII (see ascii_env)."""
+    if os.name != "nt":
+        return path
+    import ctypes
+
+    buf = ctypes.create_unicode_buffer(32768)
+    n = ctypes.windll.kernel32.GetShortPathNameW(path, buf, len(buf))
+    return buf.value if 0 < n < len(buf) else path
+
+
+def ascii_env() -> dict[str, str]:
+    """ncu 2024.1 on Windows aborts with "Failed to parse options" if *any*
+    argument or environment variable contains a character outside the console
+    code page (here: a non-ASCII Windows user name in USERPROFILE, APPDATA, PATH...).
+    Rewrite such values to 8.3 short paths and drop what cannot be converted."""
+    env = {}
+    for key, val in os.environ.items():
+        if val.isascii():
+            env[key] = val
+            continue
+        parts = [short_path(v) for v in val.split(os.pathsep)]
+        parts = [v for v in parts if v.isascii()]
+        if parts:
+            env[key] = os.pathsep.join(parts)
+    return env
 
 
 def main() -> None:
+    sys.stdout.reconfigure(errors="replace")  # ncu output is not always valid cp1252
     ap = argparse.ArgumentParser()
     ap.add_argument("--ncu", default=shutil.which("ncu") or DEFAULT_NCU)
     args = ap.parse_args()
     cmd = [
         args.ncu, "--profile-from-start", "off", "--target-processes", "all",
         "--metrics", ",".join(METRICS), "--csv",
-        sys.executable, str(ROOT / "scripts" / "ncu_target.py"),
+        short_path(sys.executable), short_path(str(ROOT / "scripts" / "ncu_target.py")),
     ]
     print("running:", " ".join(cmd), flush=True)
-    p = subprocess.run(cmd, capture_output=True, text=True, errors="replace", timeout=600)
+    p = subprocess.run(cmd, capture_output=True, text=True, errors="replace", timeout=600,
+                       env=ascii_env(), cwd=short_path(str(ROOT)))
     out = redact(p.stdout + "\n" + p.stderr)
     csv_lines = [ln for ln in redact(p.stdout).splitlines() if ln.startswith('"')]
     (ROOT / "results").mkdir(exist_ok=True)
