@@ -33,7 +33,8 @@ def test_attention_matches_fp32_reference(b, h, n, d, dtype):
 
 
 def test_online_softmax_is_stable_for_large_logits():
-    # Logits ~ +-500 overflow exp() in fp32 without max subtraction; the running
+    # q, k ~ N(0, 64), D = 64: scaled logits have std ~64 and reach ~+-300, far past
+    # the ~88 where exp() overflows fp32 without max subtraction. The running
     # max in the online softmax must keep everything finite.
     q = torch.randn(1, 2, 256, 64, device="cuda", dtype=torch.float16) * 8
     k = torch.randn(1, 2, 256, 64, device="cuda", dtype=torch.float16) * 8

@@ -8,7 +8,7 @@ import torch.nn.functional as F
 
 def rmsnorm_ref(x: torch.Tensor, weight: torch.Tensor, eps: float = 1e-6) -> torch.Tensor:
     """Eager composite RMSNorm, computed in fp32 (the HF Llama/Qwen recipe, but
-    multiplying by the weight in fp32 like our kernel). ~6 kernel launches."""
+    multiplying by the weight in fp32 like our kernel). ~7 kernel launches."""
     xf = x.float()
     y = xf * torch.rsqrt(xf.pow(2).mean(-1, keepdim=True) + eps) * weight.float()
     return y.to(x.dtype)
@@ -46,5 +46,6 @@ def attention_eager(q: torch.Tensor, k: torch.Tensor, v: torch.Tensor) -> torch.
 
 
 def attention_sdpa(q: torch.Tensor, k: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
-    """PyTorch SDPA; on this GPU it dispatches to its bundled FlashAttention-2 kernel."""
+    """PyTorch SDPA with default dispatch. On sm_120 with torch 2.11+cu128 its FlashAttention
+    backend is unavailable, so it falls back to cuDNN or the mem-efficient kernel."""
     return F.scaled_dot_product_attention(q, k, v, is_causal=True)

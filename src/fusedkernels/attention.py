@@ -194,5 +194,5 @@ def attention_flops(b: int, h: int, n: int, d: int, causal: bool = True) -> floa
 def attention_bytes(b: int, h: int, n: int, d: int, elem_bytes: int) -> int:
     """Ideal (compulsory) DRAM traffic: read Q, K, V once, write O once.
     The real kernel re-reads K/V once per query tile, but those re-reads mostly
-    hit the 36 MB L2 for the shapes benchmarked here."""
+    hit the 40 MB L2 for the shapes benchmarked here."""
     return 4 * b * h * n * d * elem_bytes

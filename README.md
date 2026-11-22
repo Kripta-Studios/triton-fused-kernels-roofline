@@ -11,7 +11,9 @@ benchmarked against PyTorch's best, and placed on a roofline of the GPU they ran
 The aim is to teach. The question it answers is *why* one of these kernels can
 only ever be as fast as memory, why the other can only ever be as fast as the
 tensor cores, and how to measure which wall you are hitting. Everything in the
-results section was measured on one laptop GPU. Nothing in it is simulated.
+results section was measured on one laptop GPU. Nothing in it is simulated; the
+only modeled quantities are the FLOP and byte counts used to convert times into
+TFLOP/s, GB/s and arithmetic intensity (formulas in the source).
 
 ---
 
@@ -74,7 +76,7 @@ y_i = x_i / sqrt( (1/N) * sum_j x_j^2 + eps ) * w_i
 AI = 4 FLOP / 4 B = 1 FLOP/byte      (47x to the left of the ridge)
 ```
 
-Worked example: 16384 tokens x 4096 hidden in bf16 is 128 MB in plus 128 MB out,
+Worked example: 16384 tokens x 4096 hidden in bf16 is 134 MB in plus 134 MB out,
 268 MB in total. At the measured 455 GB/s that takes **0.59 ms**, and the FLOPs
 take 0.27 GFLOP / 21.4 TFLOP/s = **0.013 ms**. The tensor cores do not matter at
 all and the ALUs barely do. The only lever is the number of bytes.
@@ -98,8 +100,8 @@ That is the `fused_add_rms_norm` contract of vLLM and SGLang. The kernel rounds
 the unfused model's. A test asserts `torch.equal(h, x + r)`.
 
 Kernel details worth reading in the source: int64 row offsets (rows x stride
-overflows int32 at long contexts), an fp32 sum of squares (an fp16 sum overflows
-at |x| ~ 200 with N = 4096, which is tested), and `num_warps` scaled with the row
+overflows int32 at long contexts), an fp32 sum of squares (an fp16 sum of N squares overflows
+once |x| > sqrt(65504 / N), i.e. |x| > 4 at N = 4096; the test uses |x| = 200), and `num_warps` scaled with the row
 length so each thread keeps ~8-16 elements in flight.
 
 ---
@@ -149,8 +151,8 @@ grid = (ceil(N / BLOCK_M), B * H)         launched largest-row-first to fill the
 ```
 
 Each K/V tile is loaded once per query tile, so the inner loop does
-`2 * BLOCK_M * BLOCK_N * D` FLOPs per `2 * BLOCK_N * D * 2` bytes of K/V, an **AI
-of about BLOCK_M FLOP/B (64-128)**. That holds even when every K/V re-read misses
+`4 * BLOCK_M * BLOCK_N * D` FLOPs (two GEMMs, `QK^T` and `PV`) per `2 * BLOCK_N * D * 2`
+bytes of K/V, an **AI of BLOCK_M FLOP/B (64-128)**. That holds even when every K/V re-read misses
 L2 and goes to DRAM, and it is still above the 47 FLOP/B ridge. Tiling is what
 turns the N^2 FLOPs into on-chip work.
 
@@ -214,7 +216,7 @@ flowchart LR
 **Hardware and software:** NVIDIA GeForce RTX 5070 Ti Laptop GPU (sm_120, 46 SMs,
 11.9 GB usable), driver 591.86, Windows 11 (26200), Python 3.12.13, torch
 2.11.0+cu128, triton-windows 3.5.1. Timing uses `triton.testing.do_bench`, median
-over reps. The 36 MB L2 is flushed between reps, so the numbers are
+over reps. The L2 (40 MB per the spec sheet) is flushed between reps, so the numbers are
 DRAM-cold. All benchmarks are bf16. Exact environment: [results/env.json](results/env.json).
 
 > **Measurement caveat.** The GPU was shared with other jobs and was thermally
@@ -282,9 +284,9 @@ would need several GB of VRAM. The FLOP/byte axis on the roofline uses compulsor
 
 What to read from this:
 * The Triton kernel reaches **16-17 TFLOP/s at D = 64**, which is **~80% of the
-  measured cuBLAS roof** (21.4). It is within ±10% of cuDNN's fused attention, the
-  fastest backend PyTorch has on this GPU, and 2-2.7x faster than SDPA's
-  memory-efficient backend.
+  measured cuBLAS roof** (21.4). For N >= 4096 it is within ±12% of cuDNN's fused
+  attention, the fastest backend PyTorch has on this GPU (at N = 2048, D = 64 it is
+  26% slower), and about 2x (1.9-2.3x) faster than SDPA's memory-efficient backend.
 * **SDPA's FlashAttention backend is not available** in this torch build on sm_120
   (`No available kernel`, recorded in [results/attention_meta.json](results/attention_meta.json)),
   so the comparison is against cuDNN and mem-efficient.
@@ -296,10 +298,12 @@ What to read from this:
   verified it with counters) is register pressure: a 128-wide fp32 accumulator
   plus the Q tile per program lowers occupancy. FA3/FA4 address this with warp
   specialization and tensor memory, which this GPU lacks (see docs/SOTA.md).
-* At N = 512 the kernel is at 7.7 TFLOP/s. There are only 4-8 query tiles x 16
-  heads = 64-128 programs for 46 SMs, so the GPU is not full. That is FA2's
-  motivation for parallelizing over the sequence dimension, and it is also why
-  batch size matters.
+* Short sequences are where the GPU is hardest to fill: at N = 512 there are
+  only 4-8 query tiles x 16 heads = 64-128 programs for 46 SMs (D = 128 reaches
+  7.7 TFLOP/s there). That is FA2's motivation for parallelizing over the
+  sequence dimension, and it is also why batch size matters. The N <= 1024 rows
+  are sub-0.4 ms runs and were the noisiest on the shared GPU (e.g. cuDNN at
+  N = 512, D = 64 timed *slower* than at N = 1024), so read them with care.
 
 ### Nsight Compute
 
@@ -337,7 +341,7 @@ attention at N = 4096 is the largest allocation).
 **Numerics tests** ([tests/](tests/)): fp16 and bf16, against an fp32 oracle, with
 tolerances of about 2 ulp of the output dtype (fp16 2e-3, bf16 1.6e-2). Shapes
 include non-power-of-2 hidden sizes, N not a multiple of any tile, N = 1,
-non-contiguous `[B, N, H, D]` views, and logits around ±500 (online-softmax
+non-contiguous `[B, N, H, D]` views, and scaled logits with std ~64 and extremes near ±300 (exp overflows fp32 above 88; online-softmax
 stability). Other tests check that causality holds bit-exactly (changing future
 K/V leaves earlier outputs unchanged), that the residual stream is bit-identical
 to `x + r`, and that the attention error is no worse than 2x PyTorch SDPA's own
