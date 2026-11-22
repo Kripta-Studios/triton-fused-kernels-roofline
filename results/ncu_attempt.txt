@@ -1,0 +1,5 @@
+command: C:\Program Files\NVIDIA Corporation\Nsight Compute 2024.1.1\ncu.BAT --profile-from-start off --target-processes all --metrics gpu__time_duration.sum,dram__bytes.sum,dram__throughput.avg.pct_of_peak_sustained_elapsed,sm__throughput.avg.pct_of_peak_sustained_elapsed,sm__warps_active.avg.pct_of_peak_sustained_active --csv ~\Desktop\KriptaStudios\Infraestructure_Projects\.venv\Scripts\python.exe ~\Desktop\KriptaStudios\Infraestructure_Projects\triton-fused-kernels-roofline\scripts\ncu_target.py
+return code: 1
+
+==ERROR== Failed to parse options: No hay ninguna asignación en la página de códigos de múltiples bytes de destino para el carácter Unicode.
+

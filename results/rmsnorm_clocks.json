@@ -1,0 +1,14 @@
+{
+  "n_samples": 34,
+  "sm_mhz_median": 855.0,
+  "sm_mhz_min": 232.0,
+  "sm_mhz_max": 1755.0,
+  "mem_mhz_median": 11001.0,
+  "temp_c_median": 87.0,
+  "temp_c_max": 89.0,
+  "power_w_median": 37.65,
+  "throttle_reasons_seen": [
+    "0x0000000000000000",
+    "0x0000000000000020"
+  ]
+}

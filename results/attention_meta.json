@@ -1,0 +1,19 @@
+{
+  "clocks": {
+    "n_samples": 129,
+    "sm_mhz_median": 922.0,
+    "sm_mhz_min": 180.0,
+    "sm_mhz_max": 1695.0,
+    "mem_mhz_median": 9001.0,
+    "temp_c_median": 86.0,
+    "temp_c_max": 89.0,
+    "power_w_median": 26.09,
+    "throttle_reasons_seen": [
+      "0x0000000000000000",
+      "0x0000000000000020"
+    ]
+  },
+  "sdpa_unavailable": {
+    "sdpa_flash": "No available kernel. Aborting execution."
+  }
+}

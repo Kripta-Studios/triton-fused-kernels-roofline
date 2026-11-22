@@ -1,0 +1,98 @@
+{
+  "copy": [
+    {
+      "impl": "triton_copy",
+      "mb": 8,
+      "ms": 0.032735999673604965,
+      "gbps": 512.5004938684511
+    },
+    {
+      "impl": "torch_copy_",
+      "mb": 8,
+      "ms": 0.03686400130391121,
+      "gbps": 455.1110950134425
+    },
+    {
+      "impl": "triton_copy",
+      "mb": 32,
+      "ms": 0.1302720010280609,
+      "gbps": 515.144186551219
+    },
+    {
+      "impl": "torch_copy_",
+      "mb": 32,
+      "ms": 0.15561600029468536,
+      "gbps": 431.2465548074617
+    },
+    {
+      "impl": "triton_copy",
+      "mb": 128,
+      "ms": 0.609824001789093,
+      "gbps": 440.1851275326453
+    },
+    {
+      "impl": "torch_copy_",
+      "mb": 128,
+      "ms": 0.5904319882392883,
+      "gbps": 454.64246745928233
+    },
+    {
+      "impl": "triton_copy",
+      "mb": 512,
+      "ms": 3.040800094604492,
+      "gbps": 353.11161227113104
+    },
+    {
+      "impl": "torch_copy_",
+      "mb": 512,
+      "ms": 2.83734393119812,
+      "gbps": 378.4320301087338
+    }
+  ],
+  "gemm": [
+    {
+      "dtype": "torch.float16",
+      "size": 2048,
+      "ms": 0.8030400276184082,
+      "tflops": 21.393540288334915
+    },
+    {
+      "dtype": "torch.float16",
+      "size": 4096,
+      "ms": 8.908736228942871,
+      "tflops": 15.427435490287133
+    },
+    {
+      "dtype": "torch.float16",
+      "size": 8192,
+      "ms": 72.33229064941406,
+      "tflops": 15.200840702048286
+    },
+    {
+      "dtype": "torch.bfloat16",
+      "size": 2048,
+      "ms": 0.9016960263252258,
+      "tflops": 19.052838963940964
+    },
+    {
+      "dtype": "torch.bfloat16",
+      "size": 4096,
+      "ms": 8.876431941986084,
+      "tflops": 15.483581057148093
+    },
+    {
+      "dtype": "torch.bfloat16",
+      "size": 8192,
+      "ms": 54.555423736572266,
+      "tflops": 20.15402965404742
+    }
+  ],
+  "summary": {
+    "measured_dram_gbps": 454.64246745928233,
+    "measured_tensor_tflops": 21.393540288334915,
+    "datasheet_dram_gbps": 672.0,
+    "datasheet_tensor_fp16_fp32acc_tflops": 54.95,
+    "bw_fraction_of_datasheet": 0.6765512908620273,
+    "tflops_fraction_of_datasheet": 0.389327393782255
+  }
+}
